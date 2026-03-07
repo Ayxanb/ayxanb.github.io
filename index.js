@@ -23,11 +23,11 @@ const CFG = Object.freeze({
   // Orbit feel
   AUTO_ROTATE_SPEED: 0.002,
   DAMP:              0.10,
-  RESTORE_DELAY:     5.0,   // seconds idle before camera recenters
+  RESTORE_DELAY:     4.0,   // seconds idle before camera recenters
 
   // Scene
   BG_COLOR:    new THREE.Color(0x06000f),
-  FOG_DENSITY: 0.072,
+  FOG_DENSITY: 0.075,
 
   // Particles
   DUST_COUNT: 300,
@@ -81,10 +81,10 @@ window.addEventListener('resize', () => {
 //  LIGHTS
 // ─────────────────────────────────────────────
 function setupLights() {
-  scene.add(new THREE.AmbientLight(0x2a0015, 18));
+  scene.add(new THREE.AmbientLight('#2a0015', 13));
 
   // Key light — warm top-down
-  const key = new THREE.DirectionalLight(0xfff0d8, 5.5);
+  const key = new THREE.DirectionalLight('#fff0d8', 3.0);
   key.position.set(4, 10, 3);
   key.castShadow = true;
   key.shadow.mapSize.setScalar(2048);
@@ -108,14 +108,14 @@ function setupLights() {
 
   // Point lights clustered around the flower
   const pointLights = [
-    { color: 0xff1a10, intensity: 3.5, distance: 14, pos: [-2.5,  2.5,  2.0] },
-    { color: 0xff4410, intensity: 2.5, distance: 10, pos: [ 2.2,  4.0, -2.5] },
-    { color: 0xffcc22, intensity: 1.5, distance:  7, pos: [ 0.0,  0.7,  1.8] },
-    { color: 0xff0820, intensity: 2.0, distance: 12, pos: [ 1.5, -0.5,  0.5] },
-    { color: 0xff3060, intensity: 1.1, distance:  6, pos: [-1.0,  1.5, -1.2] },
-    { color: 0xff7030, intensity: 1.0, distance:  8, pos: [ 0.0, -3.5,  0.5] },
-    { color: 0xff0060, intensity: 1.4, distance:  9, pos: [-3.0,  0.5, -1.0] },
-    { color: 0xffaa00, intensity: 0.9, distance:  6, pos: [ 3.0,  1.0,  1.5] },
+    { color: '#ff1a10', intensity: 3.0, distance: 14, pos: [-2.5,  2.5,  2.0] },
+    { color: '#ff4410', intensity: 2.0, distance: 10, pos: [ 2.2,  4.0, -2.5] },
+    { color: '#ffcc22', intensity: 1.0, distance:  7, pos: [ 0.0,  0.7,  1.8] },
+    { color: '#ff0820', intensity: 2.0, distance: 12, pos: [ 1.5, -0.5,  0.5] },
+    { color: '#ff3060', intensity: 1.0, distance:  6, pos: [-1.0,  1.5, -1.2] },
+    { color: '#ff7030', intensity: 1.0, distance:  8, pos: [ 0.0, -3.5,  0.5] },
+    { color: '#ff0060', intensity: 1.0, distance:  9, pos: [-3.0,  0.5, -1.0] },
+    { color: '#ffaa00', intensity: 0.7, distance:  6, pos: [ 3.0,  1.0,  1.5] },
   ];
   pointLights.forEach(({ color, intensity, distance, pos }) => {
     const light = new THREE.PointLight(color, intensity, distance);
@@ -149,7 +149,7 @@ setupLights();
 
   const glowRing = new THREE.Mesh(
     new THREE.RingGeometry(0.5, 2.5, 48),
-    new THREE.MeshBasicMaterial({ color: 0xff1040, side: THREE.DoubleSide, transparent: true, opacity: 0.10 })
+    new THREE.MeshBasicMaterial({ color: '#ff1018', side: THREE.DoubleSide, transparent: true, opacity: 0.10 })
   );
   glowRing.rotation.x = -Math.PI / 2;
   glowRing.position.y = -3.17;
@@ -215,7 +215,7 @@ const Materials = {
   pistil: new THREE.MeshStandardMaterial({ color: '#7aaa25', roughness: 0.55 }),
   stigma: new THREE.MeshStandardMaterial({ color: '#9dc040', roughness: 0.40, emissive: new THREE.Color(0.04, 0.08, 0) }),
   fallingPetal: new THREE.MeshStandardMaterial({
-    color:       '#c01030',           // ← slightly less vibrant
+    color:       '#c01030',
     roughness:   0.45,
     side:        THREE.DoubleSide,
     transparent: true,
@@ -670,7 +670,7 @@ const Wind = {
 
 
 // ─────────────────────────────────────────────
-//  ORBIT CONTROLS (manual implementation)
+//  ORBIT CONTROLS
 // ─────────────────────────────────────────────
 const orbit = {
   theta:  CFG.THETA,
@@ -867,3 +867,15 @@ function animate() {
 }
 
 animate();
+
+setTimeout(() => {
+  let message = document.getElementById('message');
+  if (message) {
+    message.style.animation = 'fadeOut 1.5s ease-out';
+  }
+
+  let hint = document.getElementById('hint');
+  if (hint) {
+    hint.style.animation = 'fadeOut 1.5s ease-out';
+  }
+}, 15000);
