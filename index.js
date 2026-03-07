@@ -5,13 +5,13 @@ const CFG = Object.freeze({
   FOG_DENSITY: 0.10,
 
   // ── Camera / Orbit ────────────────────────────────────────────────
-  FOV:      52,
+  FOV:      55,
   NEAR:     0.01,
   FAR:      120,
   THETA:    0.45,
   PHI:      1.08,
   RADIUS:   6,
-  AUTO_ROT: 0.0020,
+  AUTO_ROT: 0.002,
   DAMP:     0.10,
   PHI_MIN:  0.08,
   PHI_MAX:  Math.PI * 0.82,
@@ -32,8 +32,8 @@ const smstep = (a, b, x)   => {
 const rnd    = ()           => Math.random();
 const rr     = (a, b)       => a + rnd() * (b - a);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 3));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled   = true;
 renderer.shadowMap.type      = THREE.PCFSoftShadowMap;
@@ -54,11 +54,10 @@ window.addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-
 (function setupLights() {
-  scene.add(new THREE.AmbientLight(0x1a0005, 5.0));
+  scene.add(new THREE.AmbientLight('#1a0005', 10.0));
 
-  const key = new THREE.DirectionalLight(0xffecd8, 5.5);
+  const key = new THREE.DirectionalLight('#ffecd8', 5.5);
   key.position.set(4, 10, 3);
   key.castShadow = true;
   key.shadow.mapSize.setScalar(2048);
@@ -66,7 +65,7 @@ window.addEventListener('resize', () => {
   scene.add(key);
 
   // Creates subtle blue sheen on petal backs
-  const fill = new THREE.DirectionalLight(0x7088ff, 0.75);
+  const fill = new THREE.DirectionalLight('#bc6b08', 0.75);
   fill.position.set(-5, 3, -3);
   scene.add(fill);
 
@@ -148,10 +147,6 @@ function createIndices(indices, segU, segV) {
 }
 }
 
-// ╔══════════════════════════════════════════════════════════════════╗
-// ║  § 5  GEOMETRY — Petal                                           ║
-// ╚══════════════════════════════════════════════════════════════════╝
-//
 //  Parametric surface for a realistic red rose petal.
 //
 //  Coordinate axes (local petal space before world transform):
@@ -224,10 +219,10 @@ function buildPetalGeo(layerT) {
       const cup     = uc * uc * bowlAmp * Math.sin(v * Math.PI * 0.90);
 
       // ── Forward arch  (petal surface bows outward / away from center)
-      const arch = Math.sin(v * Math.PI) * (0.04 + layerT * 0.17);
+      const arch = Math.sin(v * Math.PI) * (0.05 + layerT * 0.17);
 
       // ── Tip curl (outer petals curl back at tip)  ────────────────
-      const tipCurlT = smstep(0.70, 1.0, v);
+      const tipCurlT = smstep(0.7, 1.0, v);
       const tipCurl  = tipCurlT * tipCurlT * (0.035 + layerT * 0.30);
 
       // ── Edge roll-back (outer 50% of width folds backward) ────────
@@ -666,7 +661,7 @@ window.addEventListener('mousemove', e => {
 });
 renderer.domElement.addEventListener('wheel', e => {
   e.preventDefault();
-  orbit.tRadius = clamp(orbit.tRadius + e.deltaY * 0.004, CFG.R_MIN, CFG.R_MAX);
+  orbit.tRadius = clamp(orbit.tRadius + e.deltaY * 0.04, CFG.R_MIN, CFG.R_MAX);
 }, { passive: false });
 
 // Touch support
