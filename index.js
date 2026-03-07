@@ -224,10 +224,6 @@ const Materials = {
   }),
 };
 
-
-// ─────────────────────────────────────────────
-//  GEOMETRY HELPERS
-// ─────────────────────────────────────────────
 function buildBufferGeometry(indices, positions, uvs, colors) {
   const geo = new THREE.BufferGeometry();
   geo.setIndex(indices);
