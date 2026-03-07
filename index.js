@@ -182,6 +182,66 @@ function createIndices(indices, segU, segV) {
 }
 }
 
+(function buildEnvironment() {
+  const floor = new THREE.Mesh(
+    new THREE.CircleGeometry(14, 64),
+    new THREE.MeshStandardMaterial({ color: 0x0a0020, roughness: 0.95, metalness: 0.05 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -3.2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.8, 14, 64),
+    new THREE.MeshBasicMaterial({ color: 0x3a0030, side: THREE.DoubleSide, transparent: true, opacity: 0.18 })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = -3.18;
+  scene.add(ring);
+
+  const glowRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.5, 2.5, 48),
+    new THREE.MeshBasicMaterial({ color: 0xff1040, side: THREE.DoubleSide, transparent: true, opacity: 0.10 })
+  );
+  glowRing.rotation.x = -Math.PI / 2;
+  glowRing.position.y = -3.17;
+  scene.add(glowRing);
+
+  const pCount  = 180;
+  const pPos    = new Float32Array(pCount * 3);
+  const pCol    = new Float32Array(pCount * 3);
+  const palette = [
+    [1.0,0.10,0.25],[1.0,0.40,0.10],[1.0,0.70,0.15],
+    [0.8,0.05,0.30],[0.6,0.02,0.50],[1.0,0.60,0.80],
+  ];
+  for (let i = 0; i < pCount; i++) {
+    const angle=rnd()*Math.PI*2, radius=rr(2.5,12);
+    pPos[i*3]=Math.cos(angle)*radius; pPos[i*3+1]=rr(-3.0,5.5); pPos[i*3+2]=Math.sin(angle)*radius;
+    const c=palette[Math.floor(rnd()*palette.length)];
+    pCol[i*3]=c[0]; pCol[i*3+1]=c[1]; pCol[i*3+2]=c[2];
+  }
+  const bgGeo = new THREE.BufferGeometry();
+  bgGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  bgGeo.setAttribute('color',    new THREE.BufferAttribute(pCol, 3));
+  scene.add(new THREE.Points(bgGeo, new THREE.PointsMaterial({
+    size: 0.055, vertexColors: true, transparent: true, opacity: 0.45, sizeAttenuation: true,
+  })));
+
+  for (let i = 0; i < 12; i++) {
+    const angle=i/12*Math.PI*2, r=rr(3.5,7.0);
+    const mist = new THREE.Mesh(
+      new THREE.SphereGeometry(rr(1.2,2.8), 8, 6),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color().setHSL(0.82+rnd()*0.12, 0.7, 0.08),
+        transparent: true, opacity: rr(0.04,0.11)
+      })
+    );
+    mist.position.set(Math.cos(angle)*r, rr(-2.5,1.5), Math.sin(angle)*r);
+    scene.add(mist);
+  }
+})();
+
 //  Parametric surface for a realistic red rose petal.
 //
 //  Coordinate axes (local petal space before world transform):
