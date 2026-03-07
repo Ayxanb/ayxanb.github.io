@@ -55,73 +55,108 @@ window.addEventListener('resize', () => {
 });
 
 (function setupLights() {
-  scene.add(new THREE.AmbientLight('#1a0005', 10.0));
+
+  scene.add(new THREE.AmbientLight('#1a0005', 10));
+
+  const ambient = new THREE.DirectionalLight('#df882as', 100);
+  ambient.position.set(0, 0, 0);
+  ambient.shadow.mapSize.setScalar(2048);
 
   const key = new THREE.DirectionalLight('#ffecd8', 5.5);
   key.position.set(4, 10, 3);
   key.castShadow = true;
   key.shadow.mapSize.setScalar(2048);
-  Object.assign(key.shadow.camera, { near: 0.1, far: 25, left: -5, right: 5, bottom: -5, top: 5 });
+
+  Object.assign(key.shadow.camera, {
+    near: 0.1,
+    far: 25,
+    left: -5,
+    right: 5,
+    bottom: -5,
+    top: 5
+  });
+
   scene.add(key);
 
-  // Creates subtle blue sheen on petal backs
   const fill = new THREE.DirectionalLight('#bc6b08', 0.75);
   fill.position.set(-5, 3, -3);
   scene.add(fill);
 
-  // Warm amber rim light — catches petal silhouette edges
   const rim = new THREE.DirectionalLight(0xff8030, 1.35);
   rim.position.set(-1, 2, -7);
   scene.add(rim);
 
-  // Red-orange scatter points — simulate light bouncing inside the bloom
   const pointLights = [
-    { color: 0xff1a10, intensity: 3.0, distance: 12, x: -2.5, y:  2.5, z:  2.0 },
-    { color: 0xff5510, intensity: 2.0, distance:  8, x:  2.2, y:  4.0, z: -2.5 },
-    { color: 0xffbb22, intensity: 1.0, distance:  6, x:  0.0, y:  0.7, z:  1.8 },
-    { color: 0xff0820, intensity: 1.6, distance: 10, x:  1.5, y: -0.5, z:  0.5 },
-    { color: 0xff3040, intensity: 0.9, distance:  5, x: -1.0, y:  1.5, z: -1.2 },
-    // Deep below: warm ground-bounce from imagined candlelight
-    { color: 0xff6020, intensity: 0.9, distance:  7, x:  0.0, y: -3.5, z:  0.5 },
+    { color: 0xff1a10, intensity: 3, distance: 12, x: -2.5, y: 2.5, z: 2 },
+    { color: 0xff5510, intensity: 2, distance: 8, x: 2.2, y: 4, z: -2.5 },
+    { color: 0xffbb22, intensity: 1, distance: 6, x: 0, y: 0.7, z: 1.8 },
+    { color: 0xff0820, intensity: 1.6, distance: 10, x: 1.5, y: -0.5, z: 0.5 },
+    { color: 0xff3040, intensity: 0.9, distance: 5, x: -1, y: 1.5, z: -1.2 },
+    { color: 0xff6020, intensity: 0.9, distance: 7, x: 0, y: -3.5, z: 0.5 },
   ];
-  pointLights.forEach(({ color, intensity, distance, x, y, z }) => {
-    const l = new THREE.PointLight(color, intensity, distance);
-    l.position.set(x, y, z);
+
+  pointLights.forEach(p => {
+    const l = new THREE.PointLight(p.color, p.intensity, p.distance);
+    l.position.set(p.x, p.y, p.z);
     scene.add(l);
   });
+
 })();
+
+/* Materials */
 
 const Mat = (() => {
   function petal(layerT) {
-    const lightness = 0.2 + layerT * 0.2;
+    const lightness = 0.3 + layerT * 0.3;
+
     return new THREE.MeshStandardMaterial({
-      color:        new THREE.Color().setHSL(0.97, 0.92, lightness),
-      roughness:    0.30 + layerT * 0.3,
-      metalness:    0.01,
-      side:         THREE.DoubleSide,
+      color: new THREE.Color().setHSL(0.95, 0.90, lightness),
+      roughness: 0.3 + layerT * 0.3,
+      metalness: 0.515,
+      side: THREE.DoubleSide,
       vertexColors: true,
-      transparent:  true,
-      opacity:      0.975,
-      emissive:     new THREE.Color().setHSL(0.97, 0.90, 0.04 + layerT * 0.02),
+      transparent: true,
+      opacity: 0.98,
+      emissive: new THREE.Color().setHSL(0.97, 0.90, 0.04 + layerT * 0.02),
     });
+
   }
 
-  const stem  = new THREE.MeshStandardMaterial({ color: 0x1e5012, roughness: 0.76 });
-  const leaf  = new THREE.MeshStandardMaterial({ color: 0x1a5510, roughness: 0.68, side: THREE.DoubleSide });
-  const sepal = new THREE.MeshStandardMaterial({ color: 0x163a0c, roughness: 0.72, side: THREE.DoubleSide });
+  const stem = new THREE.MeshStandardMaterial({ color: '#1e5012', roughness: 0.76 });
+  const leaf = new THREE.MeshStandardMaterial({ color: '#1a5510', roughness: 0.68, side: THREE.DoubleSide });
+  const sepal = new THREE.MeshStandardMaterial({ color: '#163a0c', roughness: 0.72, side: THREE.DoubleSide });
 
-  const stamen = new THREE.MeshStandardMaterial({ color: 0xe8c840, roughness: 0.55, emissive: new THREE.Color(0.10, 0.06, 0) });
-  const anther = new THREE.MeshStandardMaterial({ color: 0xb08010, roughness: 0.45, emissive: new THREE.Color(0.12, 0.05, 0) });
-  const pistil = new THREE.MeshStandardMaterial({ color: 0x7aaa25, roughness: 0.55 });
-  const stigma = new THREE.MeshStandardMaterial({ color: 0x9dc040, roughness: 0.40, emissive: new THREE.Color(0.04, 0.08, 0) });
+  const stamen = new THREE.MeshStandardMaterial({
+    color: '#e8c840',
+    roughness: 0.55,
+    emissive: new THREE.Color(0.10, 0.06, 0)
+  });
+
+  const anther = new THREE.MeshStandardMaterial({
+    color: '#b08010',
+    roughness: 0.45,
+    emissive: new THREE.Color(0.12, 0.05, 0)
+  });
+
+  const pistil = new THREE.MeshStandardMaterial({ color: '#7aaa25', roughness: 0.55 });
+
+  const stigma = new THREE.MeshStandardMaterial({
+    color: '#9dc040',
+    roughness: 0.40,
+    emissive: new THREE.Color(0.04, 0.08, 0)
+  });
 
   const fallingPetal = new THREE.MeshStandardMaterial({
-    color: 0xcc1122, roughness: 0.48, side: THREE.DoubleSide,
-    transparent: true, opacity: 0.72,
+    color: '#cc1122',
+    roughness: 0.48,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.72,
     emissive: new THREE.Color(0.06, 0, 0.01),
   });
 
   return { petal, stem, leaf, sepal, stamen, anther, pistil, stigma, fallingPetal };
+
 })();
 
 function createGeo(indices, positions, uvArr, colors) {
