@@ -40,67 +40,6 @@ canvas {
 }
 
 /* ─────────────────────────────────────────────
-   TOP MESSAGE
-───────────────────────────────────────────── */
-#message {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: clamp(20px, 5vh, 36px);
-  pointer-events: none;
-  z-index: 10;
-  animation: fadeInDown 2.5s ease forwards;
-  opacity: 0;
-}
-
-#message .title {
-  text-align: center;
-  z-index: 10;
-  font-size: clamp(1.1rem, 3vw, 1.7rem);
-  letter-spacing: clamp(0.2em, 0.5vw, 0.35em);
-  color: #ffccd8;
-  text-transform: uppercase;
-  font-weight: 300;
-  text-shadow:
-    0 0 20px rgba(255, 80, 110, 0.6),
-    0 0 60px rgba(255, 50, 90, 0.3);
-  padding: 0 clamp(12px, 5vw, 24px);
-}
-
-#message .subtitle {
-  margin-top: 8px;
-  font-size: clamp(0.65rem, 1.5vw, 0.85rem);
-  letter-spacing: 0.25em;
-  color: rgba(255, 160, 180, 0.65);
-  text-transform: uppercase;
-}
-
-#message .divider {
-  margin-top: 10px;
-  width: 80px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 120, 150, 0.5), transparent);
-}
-
-#message .hint {
-  text-align: center;
-  z-index: 10;
-  animation: fadeIn 4s 3s ease forwards;
-  opacity: 0;
-}
-
-#message .hint span {
-  font-size: 0.65rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: rgba(255, 140, 160, 0.4);
-}
-
-/* ─────────────────────────────────────────────
    UI TOGGLE BUTTON
 ───────────────────────────────────────────── */
 .ui-toggle {
