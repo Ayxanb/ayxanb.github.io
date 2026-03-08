@@ -1289,15 +1289,6 @@ function takeScreenshot() {
   // ── Assemble ──────────────────────────────────────────────────────
   document.body.appendChild(panel);
 
-  // Fade hint
-  const hint = document.querySelector('#message .hint');
-  if (hint) {
-    setTimeout(() => {
-      hint.style.transition = 'opacity 1.5s';
-      hint.style.opacity    = '0';
-    }, 8000);
-  }
-
   // ── Widget builders ──────────────────────────────────────────────
   function makeSlider(id, min, max, step, value, onChange) {
     const row = el('div', 'ui-slider-row');
@@ -1485,10 +1476,3 @@ function animate() {
 }
 
 animate();
-
-setTimeout(() => {
-  const hint = document.querySelector('#message');
-  if (hint) {
-    hint.style.animation = 'fadeOut 2s forwards';
-  }
-}, 14000);
