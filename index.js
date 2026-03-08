@@ -1,15 +1,6 @@
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════════
-//  MATH HELPERS
-// ═══════════════════════════════════════════════════════════════════
-const clamp       = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
-const lerp        = (a, b, t)   => a + (b - a) * clamp(t, 0, 1);
-const smstep      = (a, b, x)   => { const t = clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
-const rand        = ()           => Math.random();
-const randBetween = (a, b)       => a + rand() * (b - a);
-
-// ═══════════════════════════════════════════════════════════════════
 //  CONFIG — all tuneable parameters in one place
 // ═══════════════════════════════════════════════════════════════════
 const CFG = Object.freeze({
@@ -30,13 +21,13 @@ const CFG = Object.freeze({
   RADIUS_MAX: 9.0,
 
   // Feel
-  AUTO_ROTATE_SPEED: 0.002,
+  AUTO_ROTATE_SPEED: 0.0015,
   DAMP:              0.09,
   RESTORE_DELAY:     5.0,
 
   // Scene
   BG_COLOR:    new THREE.Color(0x020008),
-  FOG_DENSITY: 0.12,
+  FOG_DENSITY: 0.055,
 
   // Particles
   DUST_COUNT:   360,
@@ -49,7 +40,7 @@ const CFG = Object.freeze({
   SPOT_HEIGHT:  5.5,    // height above flower
   SPOT_ANGLE:   0.28,   // cone half-angle (radians)
   SPOT_PENUMBRA:0.45,
-  SPOT_DISTANCE: 100, // how far the light reaches (also affects shadow quality)
+  SPOT_DISTANCE:18,
 
   // Wind
   WIND_CALM_TARGET_MIN:  0.04,
@@ -168,6 +159,15 @@ const THEMES = {
 let activeTheme = 'crimson';
 
 // ═══════════════════════════════════════════════════════════════════
+//  MATH HELPERS
+// ═══════════════════════════════════════════════════════════════════
+const clamp       = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+const lerp        = (a, b, t)   => a + (b - a) * clamp(t, 0, 1);
+const smstep      = (a, b, x)   => { const t = clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+const rand        = ()           => Math.random();
+const randBetween = (a, b)       => a + rand() * (b - a);
+
+// ═══════════════════════════════════════════════════════════════════
 //  RENDERER
 // ═══════════════════════════════════════════════════════════════════
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -176,7 +176,7 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled   = true;
 renderer.shadowMap.type      = THREE.PCFSoftShadowMap;
 renderer.toneMapping         = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.6;
+renderer.toneMappingExposure = 0.55;
 document.body.appendChild(renderer.domElement);
 
 window.addEventListener('resize', () => {
@@ -342,7 +342,6 @@ function buildEnvironment() {
   // Deep starfield sphere
   const starPos = new Float32Array(CFG.STAR_COUNT * 3);
   const starCol = new Float32Array(CFG.STAR_COUNT * 3);
-
   for (let i = 0; i < CFG.STAR_COUNT; i++) {
     const theta = rand() * Math.PI * 2;
     const phi   = Math.acos(2 * rand() - 1);
@@ -356,7 +355,6 @@ function buildEnvironment() {
     const c   = new THREE.Color().setHSL(hue, sat, lum);
     starCol[i*3] = c.r; starCol[i*3+1] = c.g; starCol[i*3+2] = c.b;
   }
-  
   const starGeo = new THREE.BufferGeometry();
   starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
   starGeo.setAttribute('color',    new THREE.BufferAttribute(starCol, 3));
@@ -861,12 +859,12 @@ const fallingPetalGeo = (() => {
 const fallingPetals = Array.from({ length: CFG.FALL_COUNT }, () => {
   const mesh = new THREE.Mesh(fallingPetalGeo, makeFallingMaterial());
   mesh.userData = {
-    x: randBetween(-5.5, 5.5), y: randBetween(2.0, 9.0), z: randBetween(-5.5, 5.5),
-    speedY:  -randBetween(0.004, 0.009),
-    rotX:    rand() * Math.PI * 2, rotZ: rand() * Math.PI * 2,
-    rotSpX:  randBetween(-0.020, 0.020), rotSpZ: randBetween(-0.013, 0.013),
-    driftX:  randBetween(-0.003, 0.003), driftZ: randBetween(-0.002, 0.002),
-    phase:   rand() * Math.PI * 2,
+    x: randBetween(-5.5,5.5), y: randBetween(2.0,9.0), z: randBetween(-5.5,5.5),
+    speedY:  -randBetween(0.004,0.009),
+    rotX:    rand()*Math.PI*2, rotZ: rand()*Math.PI*2,
+    rotSpX:  randBetween(-0.020,0.020), rotSpZ: randBetween(-0.013,0.013),
+    driftX:  randBetween(-0.003,0.003), driftZ: randBetween(-0.002,0.002),
+    phase:   rand()*Math.PI*2,
   };
   scene.add(mesh);
   return mesh;
@@ -912,13 +910,12 @@ const CAM_PRESETS = {
   top:      { theta: CFG.THETA,   phi: 0.14,           radius: 4.5 },
   side:     { theta: Math.PI*0.5, phi: Math.PI*0.5,    radius: 5.5 },
   close:    { theta: CFG.THETA,   phi: 1.25,           radius: 2.2 },
-  front:    { theta: 2.3,         phi: 1.45,           radius: 7.5 },
+  dramatic: { theta: 2.3,         phi: 1.45,           radius: 7.5 },
 };
 
 function flyToPreset(name) {
   const p = CAM_PRESETS[name];
-  if (!p)
-    return;
+  if (!p) return;
   orbit.targetTheta  = p.theta;
   orbit.targetPhi    = p.phi;
   orbit.targetRadius = p.radius;
@@ -942,21 +939,17 @@ renderer.domElement.addEventListener('mousedown', e => {
   document.body.classList.add('grabbing');
   markCameraActivity();
 });
-
 window.addEventListener('mouseup', () => {
   orbit.isDragging = false;
   document.body.classList.remove('grabbing');
 });
-
 window.addEventListener('mousemove', e => {
-  if (!orbit.isDragging)
-    return;
+  if (!orbit.isDragging) return;
   orbit.targetTheta -= (e.clientX - orbit.lastX) * 0.007;
   orbit.targetPhi    = clamp(orbit.targetPhi - (e.clientY - orbit.lastY) * 0.007, CFG.PHI_MIN, CFG.PHI_MAX);
   orbit.lastX = e.clientX; orbit.lastY = e.clientY;
   markCameraActivity();
 });
-
 renderer.domElement.addEventListener('wheel', e => {
   e.preventDefault();
   orbit.targetRadius = clamp(orbit.targetRadius + e.deltaY * 0.04, CFG.RADIUS_MIN, CFG.RADIUS_MAX);
@@ -968,8 +961,7 @@ renderer.domElement.addEventListener('touchstart', e => {
   if (e.touches.length === 1) {
     orbit.isDragging = true;
     orbit.lastX = e.touches[0].clientX; orbit.lastY = e.touches[0].clientY;
-  }
-  else {
+  } else {
     orbit.isDragging = false;
     lastPinchDist = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
@@ -978,15 +970,13 @@ renderer.domElement.addEventListener('touchstart', e => {
   }
   markCameraActivity();
 }, { passive: true });
-
 renderer.domElement.addEventListener('touchmove', e => {
   e.preventDefault();
   if (e.touches.length === 1 && orbit.isDragging) {
     orbit.targetTheta -= (e.touches[0].clientX - orbit.lastX) * 0.007;
     orbit.targetPhi    = clamp(orbit.targetPhi - (e.touches[0].clientY - orbit.lastY) * 0.007, CFG.PHI_MIN, CFG.PHI_MAX);
     orbit.lastX = e.touches[0].clientX; orbit.lastY = e.touches[0].clientY;
-  }
-  else if (e.touches.length === 2) {
+  } else if (e.touches.length === 2) {
     const dist = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
@@ -1011,31 +1001,49 @@ function takeScreenshot() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  UI PANEL  (all visual styling lives in styles.css)
+//  UI PANEL  — collapsible, all visual styling lives in styles.css
 // ═══════════════════════════════════════════════════════════════════
 (function buildUI() {
-  const panel = document.createElement('div');
-  panel.id = 'rose-ui';
 
   // ── helpers ──────────────────────────────────────────────────────
-  const makeLabel = (text) => {
-    const el = document.createElement('span');
-    el.className   = 'ui-label';
-    el.textContent = text;
+  const makeEl = (tag, cls) => {
+    const el = document.createElement(tag);
+    if (cls) el.className = cls;
     return el;
   };
+  const makeLabel   = (text) => { const el = makeEl('span','ui-label'); el.textContent = text; return el; };
+  const makeDivider = ()     => makeEl('div', 'ui-divider');
+  const makeSection = ()     => makeEl('div', 'ui-section');
 
-  const makeDivider = () => {
-    const el = document.createElement('div');
-    el.className = 'ui-divider';
-    return el;
-  };
+  // ── Toggle button (always visible) ───────────────────────────────
+  const toggle = makeEl('button', 'ui-toggle');
+  toggle.innerHTML = '⚙';
+  toggle.title = 'Settings';
+  document.body.appendChild(toggle);
 
-  const makeSection = () => {
-    const el = document.createElement('div');
-    el.className = 'ui-section';
-    return el;
-  };
+  // ── Collapsible drawer ────────────────────────────────────────────
+  const panel = makeEl('div');
+  panel.id = 'rose-ui';
+  // starts collapsed
+  panel.classList.add('collapsed');
+
+  let isOpen = false;
+  toggle.addEventListener('click', () => {
+    isOpen = !isOpen;
+    panel.classList.toggle('collapsed', !isOpen);
+    toggle.classList.toggle('open', isOpen);
+    toggle.innerHTML = isOpen ? '✕' : '⚙';
+  });
+
+  // Close panel when user taps the canvas (starts a drag/orbit)
+  renderer.domElement.addEventListener('touchstart', () => {
+    if (isOpen) {
+      isOpen = false;
+      panel.classList.add('collapsed');
+      toggle.classList.remove('open');
+      toggle.innerHTML = '⚙';
+    }
+  }, { passive: true });
 
   // ── Theme buttons ─────────────────────────────────────────────────
   const themeSection = makeSection();
@@ -1043,31 +1051,27 @@ function takeScreenshot() {
 
   Object.keys(THEMES).forEach(key => {
     const ac  = themeAccents[key];
-    const btn = document.createElement('button');
-    btn.textContent = THEMES[key].label;
-    btn.className   = 'ui-btn ui-btn--theme';
+    const btn = makeEl('button', 'ui-btn ui-btn--theme');
+    btn.textContent   = THEMES[key].label;
     btn.dataset.theme = key;
+    btn.style.color   = ac;
+    btn.style.border  = `1px solid ${ac}66`;
 
     const setActive = (isActive) => {
       btn.style.background = isActive ? `${ac}66` : `${ac}33`;
       btn.style.boxShadow  = isActive ? `0 0 8px ${ac}88` : 'none';
     };
-    btn.style.color  = ac;
-    btn.style.border = `1px solid ${ac}66`;
     setActive(key === activeTheme);
 
     btn.onmouseenter = () => { btn.style.background = `${ac}55`; };
     btn.onmouseleave = () => setActive(activeTheme === key);
     btn.onclick = () => {
       activeTheme = key;
-      themeSection.querySelectorAll('button').forEach(b =>
-        b.style.background = activeTheme === b.dataset.theme
-          ? `${themeAccents[b.dataset.theme]}66` : `${themeAccents[b.dataset.theme]}33`
-      );
-      themeSection.querySelectorAll('button').forEach(b =>
-        b.style.boxShadow = activeTheme === b.dataset.theme
-          ? `0 0 8px ${themeAccents[b.dataset.theme]}88` : 'none'
-      );
+      themeSection.querySelectorAll('[data-theme]').forEach(b => {
+        const tk = b.dataset.theme, a = themeAccents[tk];
+        b.style.background = tk === activeTheme ? `${a}66` : `${a}33`;
+        b.style.boxShadow  = tk === activeTheme ? `0 0 8px ${a}88` : 'none';
+      });
       applyTheme();
     };
     themeSection.appendChild(btn);
@@ -1077,11 +1081,10 @@ function takeScreenshot() {
   const camSection = makeSection();
   camSection.appendChild(makeLabel('View:'));
 
-  [['🌸 Default','default'],['⬆ Top','top'],['➡ Side','side'],['🔍 Close','close'],['🫵 Front','front']]
+  [['🌸 Default','default'],['⬆ Top','top'],['➡ Side','side'],['🔍 Close','close'],['🎭 Dramatic','dramatic']]
     .forEach(([label, preset]) => {
-      const btn = document.createElement('button');
+      const btn = makeEl('button', 'ui-btn ui-btn--cam');
       btn.textContent = label;
-      btn.className   = 'ui-btn ui-btn--cam';
       btn.onclick = () => flyToPreset(preset);
       camSection.appendChild(btn);
     });
@@ -1090,7 +1093,7 @@ function takeScreenshot() {
   const windSection = makeSection();
   windSection.appendChild(makeLabel('💨 Wind'));
 
-  const windSlider   = document.createElement('input');
+  const windSlider   = makeEl('input');
   windSlider.type    = 'range';
   windSlider.id      = 'wind-slider';
   windSlider.min     = '0'; windSlider.max = '2'; windSlider.step = '0.05'; windSlider.value = '1';
@@ -1099,9 +1102,8 @@ function takeScreenshot() {
 
   // ── Auto-rotate ───────────────────────────────────────────────────
   let autoRotate = true;
-  const rotBtn   = document.createElement('button');
+  const rotBtn   = makeEl('button', 'ui-btn ui-btn--rot');
   rotBtn.textContent = '⟳ Auto';
-  rotBtn.className   = 'ui-btn ui-btn--rot';
   rotBtn.onclick = () => {
     autoRotate = !autoRotate;
     rotBtn.textContent = autoRotate ? '⟳ Auto' : '⏸ Auto';
@@ -1110,9 +1112,8 @@ function takeScreenshot() {
   window._roseAutoRotate = () => autoRotate;
 
   // ── Screenshot ────────────────────────────────────────────────────
-  const shotBtn   = document.createElement('button');
+  const shotBtn = makeEl('button', 'ui-btn ui-btn--shot');
   shotBtn.textContent = '📷 Save';
-  shotBtn.className   = 'ui-btn ui-btn--shot';
   shotBtn.onclick = takeScreenshot;
 
   // ── Assemble ──────────────────────────────────────────────────────
@@ -1127,7 +1128,7 @@ function takeScreenshot() {
   document.body.appendChild(panel);
 
   // Fade out hint after 8 s
-  const hint = document.querySelector('#message .hint');
+  const hint = document.getElementById('hint');
   if (hint) {
     setTimeout(() => {
       hint.style.transition = 'opacity 1.5s';
@@ -1237,19 +1238,19 @@ function animate() {
   // Petal breeze
   petalBreezeData.forEach(pd => {
     const gust = Wind.strength * (0.55 + 0.45 * Math.cos(pd.angle - Wind.direction));
-    const wX = Math.sin(time * pd.freqX * 2.1 + pd.phaseX) * 0.50
-             + Math.sin(time * pd.freqX * 3.7 + pd.phaseX * 1.3) * 0.25
-             + Math.sin(time * pd.freqX * 0.8 + pd.phaseX * 0.7) * 0.25;
-    const wZ = Math.sin(time * pd.freqZ * 1.9 + pd.phaseZ) * 0.50
-             + Math.sin(time * pd.freqZ * 3.1 + pd.phaseZ * 1.5) * 0.50;
+    const wX = Math.sin(time*pd.freqX*2.1+pd.phaseX)*0.50
+             + Math.sin(time*pd.freqX*3.7+pd.phaseX*1.3)*0.25
+             + Math.sin(time*pd.freqX*0.8+pd.phaseX*0.7)*0.25;
+    const wZ = Math.sin(time*pd.freqZ*1.9+pd.phaseZ)*0.50
+             + Math.sin(time*pd.freqZ*3.1+pd.phaseZ*1.5)*0.50;
     pd.mesh.rotation.x = pd.baseRX + wX * pd.breezeAmp * gust;
     pd.mesh.rotation.z = pd.baseRZ + wZ * pd.breezeAmp * gust * 0.6;
   });
 
   // Leaf breeze
   leafBreezeData.forEach(lb => {
-    lb.mesh.rotation.x = lb.baseRX + Math.sin(time * 0.88+lb.phaseX) * 0.026 * Wind.strength;
-    lb.mesh.rotation.z = lb.baseRZ + Math.sin(time * 0.68+lb.phaseZ) * 0.042 * Wind.strength;
+    lb.mesh.rotation.x = lb.baseRX + Math.sin(time*0.88+lb.phaseX)*0.026*Wind.strength;
+    lb.mesh.rotation.z = lb.baseRZ + Math.sin(time*0.68+lb.phaseZ)*0.042*Wind.strength;
   });
 
   // Dust orbit
@@ -1267,7 +1268,7 @@ function animate() {
   fallingPetals.forEach(mesh => {
     const d = mesh.userData;
     d.y    += d.speedY;
-    d.x    += d.driftX + Math.sin(time * 0.38 + d.phase) * 0.0018;
+    d.x    += d.driftX + Math.sin(time*0.38+d.phase)*0.0018;
     d.z    += d.driftZ;
     d.rotX += d.rotSpX;
     d.rotZ += d.rotSpZ;
