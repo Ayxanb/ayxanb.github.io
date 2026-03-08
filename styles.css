@@ -83,22 +83,14 @@ canvas {
   background: linear-gradient(90deg, transparent, rgba(255, 120, 150, 0.5), transparent);
 }
 
-/* ─────────────────────────────────────────────
-   BOTTOM HINT
-───────────────────────────────────────────── */
-#hint {
-  position: fixed;
-  bottom: 80px;
-  left: 0;
-  right: 60px;   /* keep clear of the toggle button */
+#message .hint {
   text-align: center;
-  pointer-events: none;
   z-index: 10;
   animation: fadeIn 4s 3s ease forwards;
   opacity: 0;
 }
 
-#hint span {
+#message .hint span {
   font-size: 0.65rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
@@ -135,12 +127,9 @@ canvas {
   color: #ffccd8;
 }
 
-/* ─────────────────────────────────────────────
-   UI CONTROL PANEL  (collapsible drawer)
-───────────────────────────────────────────── */
 #rose-ui {
   position: fixed;
-  bottom: 76px;          /* sits above the toggle button */
+  bottom: 76px;
   right: 14px;
   z-index: 100;
   user-select: none;
@@ -155,15 +144,37 @@ canvas {
   border: 1px solid rgba(255, 80, 80, 0.18);
   border-radius: 18px;
   padding: 14px 16px;
+
   min-width: 200px;
   max-width: min(300px, 92vw);
 
-  /* open/close animation */
+  /* NEW */
+  max-height: calc(100dvh - 110px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  /* scrollbar styling (optional) */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,80,80,.5) transparent;
+
   transform-origin: bottom right;
   transition: opacity 0.22s ease, transform 0.22s ease;
   opacity: 1;
   transform: scale(1);
   pointer-events: auto;
+}
+
+#rose-ui::-webkit-scrollbar {
+  width: 6px;
+}
+
+#rose-ui::-webkit-scrollbar-thumb {
+  background: rgba(255,80,80,.45);
+  border-radius: 6px;
+}
+
+#rose-ui::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 #rose-ui.collapsed {
@@ -267,7 +278,9 @@ canvas {
   to   { opacity: 1; }
 }
 
-@keyframes fadeOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+@media (max-height: 600px) {
+  #rose-ui {
+    bottom: 60px;
+    max-height: calc(100dvh - 90px);
+  }
 }

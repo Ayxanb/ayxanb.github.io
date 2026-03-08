@@ -910,7 +910,7 @@ const CAM_PRESETS = {
   top:      { theta: CFG.THETA,   phi: 0.14,           radius: 4.5 },
   side:     { theta: Math.PI*0.5, phi: Math.PI*0.5,    radius: 5.5 },
   close:    { theta: CFG.THETA,   phi: 1.25,           radius: 2.2 },
-  dramatic: { theta: 2.3,         phi: 1.45,           radius: 7.5 },
+  front: { theta: 2.3,         phi: 1.45,           radius: 7.5 },
 };
 
 function flyToPreset(name) {
@@ -1081,7 +1081,7 @@ function takeScreenshot() {
   const camSection = makeSection();
   camSection.appendChild(makeLabel('View:'));
 
-  [['🌸 Default','default'],['⬆ Top','top'],['➡ Side','side'],['🔍 Close','close'],['🎭 Dramatic','dramatic']]
+  [['🌸 Default','default'],['⬆ Top','top'],['➡ Side','side'],['🔍 Close','close'],['🫵 Front','front']]
     .forEach(([label, preset]) => {
       const btn = makeEl('button', 'ui-btn ui-btn--cam');
       btn.textContent = label;
@@ -1128,7 +1128,7 @@ function takeScreenshot() {
   document.body.appendChild(panel);
 
   // Fade out hint after 8 s
-  const hint = document.getElementById('hint');
+  const hint = document.querySelector('#message .hint');
   if (hint) {
     setTimeout(() => {
       hint.style.transition = 'opacity 1.5s';
