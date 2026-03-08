@@ -98,7 +98,7 @@ canvas {
 }
 
 /* ─────────────────────────────────────────────
-   UI TOGGLE BUTTON  (always visible, bottom-right)
+   UI TOGGLE BUTTON
 ───────────────────────────────────────────── */
 .ui-toggle {
   position: fixed;
@@ -127,6 +127,9 @@ canvas {
   color: #ffccd8;
 }
 
+/* ─────────────────────────────────────────────
+   PANEL DRAWER
+───────────────────────────────────────────── */
 #rose-ui {
   position: fixed;
   bottom: 76px;
@@ -136,26 +139,18 @@ canvas {
 
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   align-items: stretch;
 
-  background: rgba(5, 0, 18, 0.82);
-  backdrop-filter: blur(16px);
+  background: rgba(4, 0, 14, 0.90);
+  backdrop-filter: blur(18px);
   border: 1px solid rgba(255, 80, 80, 0.18);
   border-radius: 18px;
-  padding: 14px 16px;
+  overflow: hidden;
 
-  min-width: 200px;
-  max-width: min(300px, 92vw);
+  width: min(260px, 92vw);
 
-  /* NEW */
   max-height: calc(100dvh - 110px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-
-  /* scrollbar styling (optional) */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,80,80,.5) transparent;
 
   transform-origin: bottom right;
   transition: opacity 0.22s ease, transform 0.22s ease;
@@ -164,49 +159,190 @@ canvas {
   pointer-events: auto;
 }
 
-#rose-ui::-webkit-scrollbar {
-  width: 6px;
-}
-
-#rose-ui::-webkit-scrollbar-thumb {
-  background: rgba(255,80,80,.45);
-  border-radius: 6px;
-}
-
-#rose-ui::-webkit-scrollbar-track {
-  background: transparent;
-}
-
 #rose-ui.collapsed {
   opacity: 0;
   transform: scale(0.85);
   pointer-events: none;
 }
 
+/* ─────────────────────────────────────────────
+   TABS
+───────────────────────────────────────────── */
+.ui-tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 80, 80, 0.15);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ui-tabs::-webkit-scrollbar { display: none; }
+
+.ui-tab-btn {
+  flex: 1;
+  min-width: 44px;
+  padding: 8px 4px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  font-family: 'Georgia', serif;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: rgba(255, 180, 160, 0.45);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.ui-tab-btn:hover {
+  color: rgba(255, 200, 180, 0.80);
+  background: rgba(255, 80, 80, 0.06);
+}
+
+.ui-tab-btn.active {
+  color: #ffccd8;
+  border-bottom-color: rgba(255, 80, 100, 0.70);
+  background: rgba(255, 40, 60, 0.08);
+}
+
+/* ─────────────────────────────────────────────
+   TAB PAGES
+───────────────────────────────────────────── */
+.ui-tab-pages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 80, 80, 0.4) transparent;
+}
+
+.ui-tab-pages::-webkit-scrollbar { width: 5px; }
+.ui-tab-pages::-webkit-scrollbar-thumb {
+  background: rgba(255, 80, 80, 0.35);
+  border-radius: 4px;
+}
+.ui-tab-pages::-webkit-scrollbar-track { background: transparent; }
+
+.ui-tab-page {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px 16px;
+}
+
+.ui-tab-page.active {
+  display: flex;
+}
+
+/* ─────────────────────────────────────────────
+   SHARED COMPONENTS
+───────────────────────────────────────────── */
 .ui-label {
-  color: rgba(255, 200, 180, 0.55);
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  color: rgba(255, 200, 180, 0.50);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  margin-top: 2px;
 }
 
 .ui-divider {
   width: 100%;
   height: 1px;
-  background: rgba(255, 100, 80, 0.15);
+  background: rgba(255, 100, 80, 0.12);
   flex-shrink: 0;
+  margin: 2px 0;
 }
 
-.ui-section {
+.ui-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
+  gap: 5px;
 }
 
-/* Generic UI button base */
+/* ─────────────────────────────────────────────
+   TOGGLE SWITCH
+───────────────────────────────────────────── */
+.ui-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ui-toggle-label {
+  font-size: 11.5px;
+  color: rgba(255, 220, 200, 0.75);
+  flex: 1;
+  letter-spacing: 0.02em;
+}
+
+.ui-switch-track {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 80, 80, 0.25);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.22s, border-color 0.22s;
+}
+
+.ui-switch-track.on {
+  background: rgba(200, 30, 50, 0.55);
+  border-color: rgba(255, 80, 100, 0.60);
+}
+
+.ui-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 160, 160, 0.55);
+  transition: transform 0.22s cubic-bezier(.34,1.44,.64,1), background 0.22s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.ui-switch-track.on .ui-switch-thumb {
+  transform: translateX(16px);
+  background: #ffb8c6;
+  box-shadow: 0 0 6px rgba(255, 80, 100, 0.7);
+}
+
+/* ─────────────────────────────────────────────
+   SLIDERS
+───────────────────────────────────────────── */
+.ui-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ui-slider-row input[type="range"] {
+  flex: 1;
+  height: 3px;
+  accent-color: #ff4060;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.ui-slider-val {
+  font-size: 10px;
+  color: rgba(255, 200, 180, 0.55);
+  min-width: 32px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
+
+/* ─────────────────────────────────────────────
+   BUTTONS
+───────────────────────────────────────────── */
 .ui-btn {
   border-radius: 20px;
-  padding: 4px 11px;
+  padding: 5px 11px;
   font-size: 11px;
   cursor: pointer;
   letter-spacing: 0.04em;
@@ -214,55 +350,42 @@ canvas {
   font-family: 'Georgia', serif;
 }
 
-/* Theme buttons — color set via JS data attributes */
+/* Theme buttons */
 .ui-btn--theme {
-  /* background / color / border set dynamically in JS */
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 12px;
+  margin-bottom: 2px;
 }
 
-/* Camera preset buttons */
+/* Camera preset */
 .ui-btn--cam {
   background: rgba(255, 255, 255, 0.04);
   color: rgba(255, 230, 210, 0.80);
   border: 1px solid rgba(255, 200, 180, 0.18);
+  font-size: 10.5px;
+  padding: 5px 9px;
 }
 
 .ui-btn--cam:hover {
   background: rgba(255, 200, 180, 0.12);
 }
 
-/* Screenshot button */
+/* Screenshot */
 .ui-btn--shot {
   background: rgba(255, 200, 60, 0.08);
   color: rgba(255, 230, 150, 0.85);
   border: 1px solid rgba(255, 220, 80, 0.25);
-  padding: 4px 12px;
+  padding: 7px 14px;
+  width: 100%;
+  font-size: 12px;
+  text-align: center;
+  margin-top: 2px;
 }
 
 .ui-btn--shot:hover {
   background: rgba(255, 200, 60, 0.18);
-}
-
-/* Auto-rotate button */
-.ui-btn--rot {
-  background: rgba(100, 200, 255, 0.14);
-  color: rgba(180, 230, 255, 0.80);
-  border: 1px solid rgba(100, 200, 255, 0.20);
-  padding: 4px 10px;
-}
-
-.ui-btn--rot:hover {
-  background: rgba(100, 200, 255, 0.22);
-}
-
-.ui-btn--rot.paused {
-  background: rgba(100, 200, 255, 0.08);
-}
-
-/* Wind slider */
-#wind-slider {
-  width: 70px;
-  accent-color: #ff4040;
-  cursor: pointer;
 }
 
 /* ─────────────────────────────────────────────
@@ -276,6 +399,11 @@ canvas {
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 @media (max-height: 600px) {

@@ -36,9 +36,9 @@ const CFG = Object.freeze({
   NEBULA_COUNT:  22,
 
   // Spotlights — 3 lights equally spaced around the flower
-  SPOT_RADIUS:  4.5,    // horizontal distance from centre
-  SPOT_HEIGHT:  5.5,    // height above flower
-  SPOT_ANGLE:   0.28,   // cone half-angle (radians)
+  SPOT_RADIUS:  4.5,
+  SPOT_HEIGHT:  5.5,
+  SPOT_ANGLE:   0.28,
   SPOT_PENUMBRA:0.45,
   SPOT_DISTANCE:18,
 
@@ -50,6 +50,38 @@ const CFG = Object.freeze({
   WIND_GUST_INTERVAL_MIN: 2.5,
   WIND_GUST_INTERVAL_MAX: 7.0,
 });
+
+// ═══════════════════════════════════════════════════════════════════
+//  SCENE SETTINGS — runtime-togglable flags & values
+// ═══════════════════════════════════════════════════════════════════
+const Settings = {
+  // Camera
+  autoRotate:       true,
+  restoreCamera:    true,
+  // Visuals
+  showDust:         true,
+  showFallingPetals:true,
+  showStars:        true,
+  showNebula:       true,
+  showGlow:         true,
+  showFloor:        true,
+  shadows:          true,
+  // Atmosphere
+  fogDensity:       CFG.FOG_DENSITY,   // 0 – 0.15
+  exposure:         0.55,              // 0.1 – 1.5
+  glowIntensity:    1.0,               // 0 – 2
+  // Particles
+  dustSize:         0.025,             // 0.01 – 0.08
+  dustOpacity:      0.65,              // 0 – 1
+  fallingOpacity:   0.70,              // 0 – 1
+  starSize:         0.08,              // 0.02 – 0.25
+  // Lighting
+  keyIntensity:     3.2,               // 0 – 8
+  ambientIntensity: 10,                // 0 – 30
+  spotIntensity:    2.8,               // 0 – 8
+  // Wind
+  windScale:        1.0,               // 0 – 2
+};
 
 // ═══════════════════════════════════════════════════════════════════
 //  THEME PRESETS
@@ -75,7 +107,6 @@ const THEMES = {
     fallingColor:    '#a4161a',
     fallingEmissive: new THREE.Color(0.15, 0.05, 0.08),
   },
-
   gold: {
     label:      'Gold',
     petalHue:   0.10,
@@ -95,7 +126,6 @@ const THEMES = {
     fallingColor:    '#a16207',
     fallingEmissive: new THREE.Color(0.25, 0.15, 0.05),
   },
-
   blush: {
     label:      'Blush Pink',
     petalHue:   0.97,
@@ -115,7 +145,6 @@ const THEMES = {
     fallingColor:'#ec4899',
     fallingEmissive:new THREE.Color(0.15,0.05,0.08),
   },
-
   ivory: {
     label:      'Ivory',
     petalHue:   0.12,
@@ -135,7 +164,6 @@ const THEMES = {
     fallingColor:'#e7d8b1',
     fallingEmissive:new THREE.Color(0.12,0.10,0.08),
   },
-
   peach: {
     label:      'Peach',
     petalHue:   0.06,
@@ -170,13 +198,13 @@ const randBetween = (a, b)       => a + rand() * (b - a);
 // ═══════════════════════════════════════════════════════════════════
 //  RENDERER
 // ═══════════════════════════════════════════════════════════════════
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2.5));
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled   = true;
+renderer.shadowMap.enabled   = Settings.shadows;
 renderer.shadowMap.type      = THREE.PCFSoftShadowMap;
 renderer.toneMapping         = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.55;
+renderer.toneMappingExposure = Settings.exposure;
 document.body.appendChild(renderer.domElement);
 
 window.addEventListener('resize', () => {
@@ -190,21 +218,22 @@ window.addEventListener('resize', () => {
 // ═══════════════════════════════════════════════════════════════════
 const scene  = new THREE.Scene();
 scene.background = CFG.BG_COLOR;
-scene.fog        = new THREE.FogExp2(new THREE.Color(0x08001a), CFG.FOG_DENSITY);
+scene.fog        = new THREE.FogExp2(new THREE.Color(0x08001a), Settings.fogDensity);
 
 const camera = new THREE.PerspectiveCamera(CFG.FOV, innerWidth / innerHeight, CFG.NEAR, CFG.FAR);
 
 // ═══════════════════════════════════════════════════════════════════
-//  LIGHTS  (directional + point lights stored for theme-swap)
+//  LIGHTS
 // ═══════════════════════════════════════════════════════════════════
 const lights = {};
 
 function setupLights() {
   const theme = THEMES[activeTheme];
 
-  scene.add(new THREE.AmbientLight('#100008', 10));
+  lights.ambient = new THREE.AmbientLight('#100008', Settings.ambientIntensity);
+  scene.add(lights.ambient);
 
-  lights.key = new THREE.DirectionalLight(theme.keyLight, 3.2);
+  lights.key = new THREE.DirectionalLight(theme.keyLight, Settings.keyIntensity);
   lights.key.position.set(4, 10, 3);
   lights.key.castShadow = true;
   lights.key.shadow.mapSize.setScalar(2048);
@@ -223,12 +252,10 @@ function setupLights() {
   lights.top.position.set(0, 8, 0);
   scene.add(lights.top);
 
-  // Animated floor bounce light
   lights.bounce = new THREE.PointLight(theme.topLight, 1.2, 8);
   lights.bounce.position.set(0, -3, 0);
   scene.add(lights.bounce);
 
-  // Clustered point lights
   const ptDefs = [
     { i:0, dist:14, pos:[-2.5, 2.5, 2.0] },
     { i:1, dist:10, pos:[ 2.2, 4.0,-2.5] },
@@ -248,31 +275,23 @@ function setupLights() {
     return pl;
   });
 
-  // Three spotlights equally spaced around the flower
   setupSpotlights();
 }
 
-// ─── 3 spotlights at 120° intervals, all aimed at the flower ───
 function setupSpotlights() {
   const theme = THEMES[activeTheme];
   lights.spots = [];
-
   for (let i = 0; i < 3; i++) {
-    const angle = (i / 3) * Math.PI * 2; // 0°, 120°, 240°
+    const angle = (i / 3) * Math.PI * 2;
     const spot  = new THREE.SpotLight(
-      theme.spotColor,
-      2.8,                    // intensity
-      CFG.SPOT_DISTANCE,
-      CFG.SPOT_ANGLE,
-      CFG.SPOT_PENUMBRA,
-      1.4                     // decay
+      theme.spotColor, Settings.spotIntensity,
+      CFG.SPOT_DISTANCE, CFG.SPOT_ANGLE, CFG.SPOT_PENUMBRA, 1.4
     );
     spot.position.set(
       Math.sin(angle) * CFG.SPOT_RADIUS,
       CFG.SPOT_HEIGHT,
       Math.cos(angle) * CFG.SPOT_RADIUS
     );
-    // SpotLight target must be added to scene for lookAt to work
     spot.target.position.set(0, 0.25, 0);
     spot.castShadow = true;
     spot.shadow.mapSize.setScalar(512);
@@ -296,17 +315,19 @@ function updateLightTheme() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  ENVIRONMENT — starfield, nebula, floor
+//  ENVIRONMENT
 // ═══════════════════════════════════════════════════════════════════
 const envGroup    = new THREE.Group();
 const nebulaGroup = new THREE.Group();
 scene.add(envGroup);
 scene.add(nebulaGroup);
 
+// Keep references to things we need to toggle
+const envRefs = { floor: null, starPoints: null, twinklePoints: null };
+
 function buildEnvironment() {
   const theme = THEMES[activeTheme];
 
-  // Floor
   const floor = new THREE.Mesh(
     new THREE.CircleGeometry(18, 80),
     new THREE.MeshStandardMaterial({ color: 0x070015, roughness: 0.96, metalness: 0.04 })
@@ -315,8 +336,8 @@ function buildEnvironment() {
   floor.position.y = -3.2;
   floor.receiveShadow = true;
   envGroup.add(floor);
+  envRefs.floor = floor;
 
-  // Reflective sheen ring
   const sheen = new THREE.Mesh(
     new THREE.RingGeometry(0.0, 3.5, 64),
     new THREE.MeshBasicMaterial({
@@ -328,7 +349,6 @@ function buildEnvironment() {
   sheen.position.y = -3.19;
   envGroup.add(sheen);
 
-  // Outer decorative ring
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(3.5, 18, 72),
     new THREE.MeshBasicMaterial({
@@ -339,7 +359,7 @@ function buildEnvironment() {
   ring.position.y = -3.18;
   envGroup.add(ring);
 
-  // Deep starfield sphere
+  // Starfield
   const starPos = new Float32Array(CFG.STAR_COUNT * 3);
   const starCol = new Float32Array(CFG.STAR_COUNT * 3);
   for (let i = 0; i < CFG.STAR_COUNT; i++) {
@@ -351,18 +371,22 @@ function buildEnvironment() {
     starPos[i*3+2] = r * Math.sin(phi) * Math.sin(theta);
     const hue = rand() < 0.15 ? randBetween(0.07, 0.12) : randBetween(0.55, 0.75);
     const sat = rand() < 0.4  ? 0 : randBetween(0.3, 0.8);
-    const lum = randBetween(0.6, 1.0);
+    const lum = randBetween(0.6, 1.5);
     const c   = new THREE.Color().setHSL(hue, sat, lum);
     starCol[i*3] = c.r; starCol[i*3+1] = c.g; starCol[i*3+2] = c.b;
   }
   const starGeo = new THREE.BufferGeometry();
   starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
   starGeo.setAttribute('color',    new THREE.BufferAttribute(starCol, 3));
-  envGroup.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
-    size: 0.08, vertexColors: true, transparent: true, opacity: 0.85, sizeAttenuation: true,
-  })));
+  const starMat = new THREE.PointsMaterial({
+    size: Settings.starSize, vertexColors: true, transparent: true, opacity: 0.85, sizeAttenuation: true,
+  });
+  const starPoints = new THREE.Points(starGeo, starMat);
+  envGroup.add(starPoints);
+  envRefs.starPoints = starPoints;
+  envRefs.starMat    = starMat;
 
-  // Twinkling star layer
+  // Twinkling layer
   const twinklePos = new Float32Array(400 * 3);
   const twinkleCol = new Float32Array(400 * 3);
   for (let i = 0; i < 400; i++) {
@@ -384,6 +408,7 @@ function buildEnvironment() {
   envGroup.add(twinklePoints);
   envGroup.userData.twinkleMat    = twinkleMat;
   envGroup.userData.twinklePoints = twinklePoints;
+  envRefs.twinklePoints = twinklePoints;
 
   // Mid-field colour cloud
   const pCount = 200;
@@ -406,11 +431,14 @@ function buildEnvironment() {
   })));
 
   buildNebula(theme);
+
+  // Apply initial visibility
+  applyStarVisibility();
+  applyFloorVisibility();
 }
 
 function buildNebula(theme) {
   while (nebulaGroup.children.length) nebulaGroup.remove(nebulaGroup.children[0]);
-
   for (let i = 0; i < CFG.NEBULA_COUNT; i++) {
     const angle   = (i / CFG.NEBULA_COUNT) * Math.PI * 2 + rand() * 0.4;
     const dist    = randBetween(8, 22);
@@ -418,7 +446,6 @@ function buildNebula(theme) {
     const lum     = randBetween(0.06, 0.16);
     const size    = randBetween(2.5, 7.0);
     const opacity = randBetween(0.025, 0.075);
-
     const mesh = new THREE.Mesh(
       new THREE.SphereGeometry(size, 8, 6),
       new THREE.MeshBasicMaterial({
@@ -426,15 +453,9 @@ function buildNebula(theme) {
         transparent: true, opacity, depthWrite: false,
       })
     );
-    mesh.position.set(
-      Math.cos(angle) * dist,
-      randBetween(-5, 4),
-      Math.sin(angle) * dist
-    );
+    mesh.position.set(Math.cos(angle) * dist, randBetween(-5, 4), Math.sin(angle) * dist);
     nebulaGroup.add(mesh);
   }
-
-  // Central halo
   const halo = new THREE.Mesh(
     new THREE.SphereGeometry(3.5, 12, 10),
     new THREE.MeshBasicMaterial({
@@ -444,9 +465,20 @@ function buildNebula(theme) {
   );
   halo.position.set(0, 0.3, -1.5);
   nebulaGroup.add(halo);
+  nebulaGroup.visible = Settings.showNebula;
 }
 
 buildEnvironment();
+
+// ─── Visibility helpers ─────────────────────────────────────────────
+function applyStarVisibility() {
+  if (envRefs.starPoints)   envRefs.starPoints.visible   = Settings.showStars;
+  if (envRefs.twinklePoints) envRefs.twinklePoints.visible = Settings.showStars;
+}
+
+function applyFloorVisibility() {
+  if (envRefs.floor) envRefs.floor.visible = Settings.showFloor;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 //  MATERIALS
@@ -484,7 +516,7 @@ function makeFallingMaterial() {
     roughness:   0.45,
     side:        THREE.DoubleSide,
     transparent: true,
-    opacity:     0.70,
+    opacity:     Settings.fallingOpacity,
     emissive:    theme.fallingEmissive,
   });
 }
@@ -676,7 +708,6 @@ const leafBreezeData  = [];
 scene.add(flowerGroup);
 
 function buildFlower() {
-  // Stem
   flowerGroup.add(new THREE.Mesh(
     new THREE.TubeGeometry(
       new THREE.CatmullRomCurve3([
@@ -691,7 +722,6 @@ function buildFlower() {
     Materials.stem
   ));
 
-  // Thorns
   [[-1.02,1],[-1.55,-1],[-2.05,1],[-2.52,-1]].forEach(([y,side]) => {
     const t = new THREE.Mesh(new THREE.ConeGeometry(0.013,0.10,5), Materials.stem);
     t.rotation.z = side*1.20;
@@ -699,7 +729,6 @@ function buildFlower() {
     flowerGroup.add(t);
   });
 
-  // Leaves
   const leafGeo = buildLeafGeometry();
   [{y:-1.42,ry:-0.60,rx:-0.48,side:-1},{y:-2.0,ry:0.1,rx:0.5,side:0}].forEach(({y,ry,rx,side}) => {
     const leaf   = new THREE.Mesh(leafGeo, Materials.leaf);
@@ -712,7 +741,6 @@ function buildFlower() {
     leafBreezeData.push({ mesh:leaf, baseRX, baseRZ, phaseX:rand()*Math.PI*2, phaseZ:rand()*Math.PI*2 });
   });
 
-  // Sepals
   const sepalGeo = buildSepalGeometry();
   for (let s=0; s<5; s++) {
     const sepal = new THREE.Mesh(sepalGeo, Materials.sepal);
@@ -723,13 +751,11 @@ function buildFlower() {
     flowerGroup.add(sepal);
   }
 
-  // Receptacle
   flowerGroup.add(new THREE.Mesh(
     new THREE.SphereGeometry(0.10,14,12),
     new THREE.MeshStandardMaterial({ color:0x254a14, roughness:0.65 })
   ));
 
-  // Petal layers
   const layerDefs = [
     { count: 5,  r:0.000, h: 0.22, tilt: 0.28, scale:0.26 },
     { count: 6,  r:0.020, h: 0.17, tilt: 0.06, scale:0.36 },
@@ -790,12 +816,13 @@ function buildGlowOverlays() {
       new THREE.SphereGeometry(r, 12, 10),
       new THREE.MeshBasicMaterial({
         color: new THREE.Color().setHSL(theme.petalHue, 0.90, 0.55),
-        transparent: true, opacity, depthWrite: false, side: THREE.FrontSide,
+        transparent: true, opacity: opacity * Settings.glowIntensity, depthWrite: false, side: THREE.FrontSide,
       })
     );
     glow.position.set(0, 0.15, 0);
     glowGroup.add(glow);
   });
+  glowGroup.visible = Settings.showGlow;
 }
 buildGlowOverlays();
 
@@ -830,9 +857,11 @@ dustColorAttr.setUsage(THREE.DynamicDrawUsage);
 const dustGeo = new THREE.BufferGeometry();
 dustGeo.setAttribute('position', dustPositionAttr);
 dustGeo.setAttribute('color',    dustColorAttr);
-scene.add(new THREE.Points(dustGeo, new THREE.PointsMaterial({
-  size: 0.025, vertexColors: true, transparent: true, opacity: 0.65, sizeAttenuation: true,
-})));
+const dustMat = new THREE.PointsMaterial({
+  size: Settings.dustSize, vertexColors: true, transparent: true, opacity: Settings.dustOpacity, sizeAttenuation: true,
+});
+const dustPoints = new THREE.Points(dustGeo, dustMat);
+scene.add(dustPoints);
 
 function refreshDustColors() {
   const theme = THEMES[activeTheme];
@@ -866,6 +895,7 @@ const fallingPetals = Array.from({ length: CFG.FALL_COUNT }, () => {
     driftX:  randBetween(-0.003,0.003), driftZ: randBetween(-0.002,0.002),
     phase:   rand()*Math.PI*2,
   };
+  mesh.visible = Settings.showFallingPetals;
   scene.add(mesh);
   return mesh;
 });
@@ -886,10 +916,9 @@ const Wind = {
   target:    0.12,
   nextGust:  3.0,
   direction: 0.8,
-  userScale: 1.0,
 
   update(dt) {
-    this.strength += (this.target * this.userScale - this.strength) * 0.008;
+    this.strength += (this.target * Settings.windScale - this.strength) * 0.008;
     this.nextGust -= dt;
     if (this.nextGust <= 0) {
       const calm  = rand() < 0.42;
@@ -910,7 +939,7 @@ const CAM_PRESETS = {
   top:      { theta: CFG.THETA,   phi: 0.14,           radius: 4.5 },
   side:     { theta: Math.PI*0.5, phi: Math.PI*0.5,    radius: 5.5 },
   close:    { theta: CFG.THETA,   phi: 1.25,           radius: 2.2 },
-  front: { theta: 2.3,         phi: 1.45,           radius: 7.5 },
+  front:    { theta: 2.3,         phi: 1.45,           radius: 7.5 },
 };
 
 function flyToPreset(name) {
@@ -1001,30 +1030,27 @@ function takeScreenshot() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  UI PANEL  — collapsible, all visual styling lives in styles.css
+//  UI PANEL  — fully collapsible, tabbed settings
 // ═══════════════════════════════════════════════════════════════════
 (function buildUI() {
 
   // ── helpers ──────────────────────────────────────────────────────
-  const makeEl = (tag, cls) => {
-    const el = document.createElement(tag);
-    if (cls) el.className = cls;
-    return el;
-  };
-  const makeLabel   = (text) => { const el = makeEl('span','ui-label'); el.textContent = text; return el; };
-  const makeDivider = ()     => makeEl('div', 'ui-divider');
-  const makeSection = ()     => makeEl('div', 'ui-section');
+  const el = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
 
-  // ── Toggle button (always visible) ───────────────────────────────
-  const toggle = makeEl('button', 'ui-toggle');
+  const makeLabel = (text) => {
+    const e = el('span', 'ui-label'); e.textContent = text; return e;
+  };
+  const makeDivider = () => el('div', 'ui-divider');
+
+  // ── Toggle button ────────────────────────────────────────────────
+  const toggle = el('button', 'ui-toggle');
   toggle.innerHTML = '⚙';
   toggle.title = 'Settings';
   document.body.appendChild(toggle);
 
-  // ── Collapsible drawer ────────────────────────────────────────────
-  const panel = makeEl('div');
+  // ── Drawer ───────────────────────────────────────────────────────
+  const panel = el('div');
   panel.id = 'rose-ui';
-  // starts collapsed
   panel.classList.add('collapsed');
 
   let isOpen = false;
@@ -1035,7 +1061,6 @@ function takeScreenshot() {
     toggle.innerHTML = isOpen ? '✕' : '⚙';
   });
 
-  // Close panel when user taps the canvas (starts a drag/orbit)
   renderer.domElement.addEventListener('touchstart', () => {
     if (isOpen) {
       isOpen = false;
@@ -1045,13 +1070,47 @@ function takeScreenshot() {
     }
   }, { passive: true });
 
-  // ── Theme buttons ─────────────────────────────────────────────────
-  const themeSection = makeSection();
-  themeSection.appendChild(makeLabel('Theme:'));
+  // ── Tabs ─────────────────────────────────────────────────────────
+  const tabBar   = el('div', 'ui-tabs');
+  const tabPages = el('div', 'ui-tab-pages');
+  const tabs = {};
+  const pages = {};
+
+  ['Theme','Camera','Scene','Lights','Particles'].forEach((name, i) => {
+    const btn = el('button', 'ui-tab-btn');
+    btn.textContent = name;
+    btn.dataset.tab = name;
+    tabBar.appendChild(btn);
+
+    const page = el('div', 'ui-tab-page');
+    page.dataset.tab = name;
+    tabPages.appendChild(page);
+    tabs[name]  = btn;
+    pages[name] = page;
+  });
+
+  function switchTab(name) {
+    Object.keys(tabs).forEach(k => {
+      tabs[k].classList.toggle('active', k === name);
+      pages[k].classList.toggle('active', k === name);
+    });
+  }
+  tabBar.addEventListener('click', e => {
+    if (e.target.dataset.tab) switchTab(e.target.dataset.tab);
+  });
+  switchTab('Theme');
+
+  panel.appendChild(tabBar);
+  panel.appendChild(tabPages);
+
+  // ══════════════════════════════
+  //  TAB: THEME
+  // ══════════════════════════════
+  const pg = pages;
 
   Object.keys(THEMES).forEach(key => {
     const ac  = themeAccents[key];
-    const btn = makeEl('button', 'ui-btn ui-btn--theme');
+    const btn = el('button', 'ui-btn ui-btn--theme');
     btn.textContent   = THEMES[key].label;
     btn.dataset.theme = key;
     btn.style.color   = ac;
@@ -1062,72 +1121,175 @@ function takeScreenshot() {
       btn.style.boxShadow  = isActive ? `0 0 8px ${ac}88` : 'none';
     };
     setActive(key === activeTheme);
-
     btn.onmouseenter = () => { btn.style.background = `${ac}55`; };
     btn.onmouseleave = () => setActive(activeTheme === key);
     btn.onclick = () => {
       activeTheme = key;
-      themeSection.querySelectorAll('[data-theme]').forEach(b => {
+      pg['Theme'].querySelectorAll('[data-theme]').forEach(b => {
         const tk = b.dataset.theme, a = themeAccents[tk];
         b.style.background = tk === activeTheme ? `${a}66` : `${a}33`;
         b.style.boxShadow  = tk === activeTheme ? `0 0 8px ${a}88` : 'none';
       });
       applyTheme();
     };
-    themeSection.appendChild(btn);
+    pg['Theme'].appendChild(btn);
   });
 
-  // ── Camera presets ────────────────────────────────────────────────
-  const camSection = makeSection();
-  camSection.appendChild(makeLabel('View:'));
+  pg['Theme'].appendChild(makeDivider());
 
-  [['🌸 Default','default'],['⬆ Top','top'],['➡ Side','side'],['🔍 Close','close'],['🫵 Front','front']]
-    .forEach(([label, preset]) => {
-      const btn = makeEl('button', 'ui-btn ui-btn--cam');
-      btn.textContent = label;
+  // Exposure
+  pg['Theme'].appendChild(makeLabel('Brightness'));
+  pg['Theme'].appendChild(makeSlider('exposure', 0.1, 1.5, 0.01, Settings.exposure, v => {
+    Settings.exposure = v;
+    renderer.toneMappingExposure = v;
+  }));
+
+  // Fog
+  pg['Theme'].appendChild(makeLabel('Fog Density'));
+  pg['Theme'].appendChild(makeSlider('fogDensity', 0, 0.15, 0.002, Settings.fogDensity, v => {
+    Settings.fogDensity = v;
+    scene.fog.density = v;
+  }));
+
+  // ══════════════════════════════
+  //  TAB: CAMERA
+  // ══════════════════════════════
+  pg['Camera'].appendChild(makeLabel('View Presets'));
+
+  const camRow = el('div', 'ui-row');
+  [['🌸','default'],['⬆','top'],['➡','side'],['🔍','close'],['🫵','front']]
+    .forEach(([icon, preset]) => {
+      const btn = el('button', 'ui-btn ui-btn--cam');
+      btn.textContent = icon + ' ' + preset.charAt(0).toUpperCase() + preset.slice(1);
       btn.onclick = () => flyToPreset(preset);
-      camSection.appendChild(btn);
+      camRow.appendChild(btn);
     });
+  pg['Camera'].appendChild(camRow);
 
-  // ── Wind slider ───────────────────────────────────────────────────
-  const windSection = makeSection();
-  windSection.appendChild(makeLabel('💨 Wind'));
+  pg['Camera'].appendChild(makeDivider());
+  pg['Camera'].appendChild(makeLabel('Behaviour'));
 
-  const windSlider   = makeEl('input');
-  windSlider.type    = 'range';
-  windSlider.id      = 'wind-slider';
-  windSlider.min     = '0'; windSlider.max = '2'; windSlider.step = '0.05'; windSlider.value = '1';
-  windSlider.oninput = () => { Wind.userScale = parseFloat(windSlider.value); };
-  windSection.appendChild(windSlider);
+  // Auto-rotate toggle
+  makeToggle(pg['Camera'], 'Auto Rotate', Settings.autoRotate, v => { Settings.autoRotate = v; });
 
-  // ── Auto-rotate ───────────────────────────────────────────────────
-  let autoRotate = true;
-  const rotBtn   = makeEl('button', 'ui-btn ui-btn--rot');
-  rotBtn.textContent = '⟳ Auto';
-  rotBtn.onclick = () => {
-    autoRotate = !autoRotate;
-    rotBtn.textContent = autoRotate ? '⟳ Auto' : '⏸ Auto';
-    rotBtn.classList.toggle('paused', !autoRotate);
-  };
-  window._roseAutoRotate = () => autoRotate;
+  // Restore camera toggle
+  makeToggle(pg['Camera'], 'Restore After Idle', Settings.restoreCamera, v => { Settings.restoreCamera = v; });
 
-  // ── Screenshot ────────────────────────────────────────────────────
-  const shotBtn = makeEl('button', 'ui-btn ui-btn--shot');
-  shotBtn.textContent = '📷 Save';
+  pg['Camera'].appendChild(makeDivider());
+  pg['Camera'].appendChild(makeLabel('Rotation Speed'));
+  pg['Camera'].appendChild(makeSlider('rotSpeed', 0, 0.006, 0.0001, CFG.AUTO_ROTATE_SPEED, v => {
+    // patch CFG at runtime via mutable shadow
+    autoRotateSpeed = v;
+  }));
+
+  // ══════════════════════════════
+  //  TAB: SCENE
+  // ══════════════════════════════
+  pg['Scene'].appendChild(makeLabel('Visibility'));
+  makeToggle(pg['Scene'], 'Glow Overlays',   Settings.showGlow,   v => { Settings.showGlow = v;   glowGroup.visible = v; });
+  makeToggle(pg['Scene'], 'Nebula Clouds',   Settings.showNebula, v => { Settings.showNebula = v; nebulaGroup.visible = v; });
+  makeToggle(pg['Scene'], 'Starfield',       Settings.showStars,  v => { Settings.showStars = v;  applyStarVisibility(); });
+  makeToggle(pg['Scene'], 'Floor',           Settings.showFloor,  v => { Settings.showFloor = v;  applyFloorVisibility(); });
+
+  pg['Scene'].appendChild(makeDivider());
+  pg['Scene'].appendChild(makeLabel('Glow Intensity'));
+  pg['Scene'].appendChild(makeSlider('glowInt', 0, 2, 0.05, Settings.glowIntensity, v => {
+    Settings.glowIntensity = v;
+    buildGlowOverlays();
+  }));
+
+  pg['Scene'].appendChild(makeLabel('Wind'));
+  pg['Scene'].appendChild(makeSlider('wind', 0, 2, 0.05, Settings.windScale, v => { Settings.windScale = v; Wind.userScale = v; }));
+
+  pg['Scene'].appendChild(makeDivider());
+  makeToggle(pg['Scene'], 'Shadows', Settings.shadows, v => {
+    Settings.shadows = v;
+    renderer.shadowMap.enabled = v;
+    // force shadow map refresh
+    scene.traverse(o => { if (o.material) o.material.needsUpdate = true; });
+  });
+
+  // Screenshot
+  pg['Scene'].appendChild(makeDivider());
+  const shotBtn = el('button', 'ui-btn ui-btn--shot');
+  shotBtn.textContent = '📷 Save Screenshot';
   shotBtn.onclick = takeScreenshot;
+  pg['Scene'].appendChild(shotBtn);
+
+  // ══════════════════════════════
+  //  TAB: LIGHTS
+  // ══════════════════════════════
+  pg['Lights'].appendChild(makeLabel('Key Light'));
+  pg['Lights'].appendChild(makeSlider('keyInt', 0, 8, 0.1, Settings.keyIntensity, v => {
+    Settings.keyIntensity = v;
+    lights.key.intensity = v;
+  }));
+
+  pg['Lights'].appendChild(makeLabel('Ambient'));
+  pg['Lights'].appendChild(makeSlider('ambInt', 0, 30, 0.5, Settings.ambientIntensity, v => {
+    Settings.ambientIntensity = v;
+    lights.ambient.intensity = v;
+  }));
+
+  pg['Lights'].appendChild(makeLabel('Spotlights'));
+  pg['Lights'].appendChild(makeSlider('spotInt', 0, 8, 0.1, Settings.spotIntensity, v => {
+    Settings.spotIntensity = v;
+    lights.spots.forEach(s => s.intensity = v);
+  }));
+
+  pg['Lights'].appendChild(makeDivider());
+  pg['Lights'].appendChild(makeLabel('Bounce Light'));
+  pg['Lights'].appendChild(makeSlider('bounceInt', 0, 4, 0.1, 1.2, v => {
+    lights.bounce.intensity = v;
+  }));
+
+  pg['Lights'].appendChild(makeLabel('Fill Light'));
+  pg['Lights'].appendChild(makeSlider('fillInt', 0, 4, 0.1, 1.1, v => {
+    lights.fill.intensity = v;
+  }));
+
+  // ══════════════════════════════
+  //  TAB: PARTICLES
+  // ══════════════════════════════
+  pg['Particles'].appendChild(makeLabel('Dust Particles'));
+  makeToggle(pg['Particles'], 'Show Dust', Settings.showDust, v => {
+    Settings.showDust = v;
+    dustPoints.visible = v;
+  });
+  pg['Particles'].appendChild(makeLabel('Dust Size'));
+  pg['Particles'].appendChild(makeSlider('dustSz', 0.01, 0.08, 0.001, Settings.dustSize, v => {
+    Settings.dustSize = v;
+    dustMat.size = v;
+  }));
+  pg['Particles'].appendChild(makeLabel('Dust Opacity'));
+  pg['Particles'].appendChild(makeSlider('dustOp', 0, 1, 0.02, Settings.dustOpacity, v => {
+    Settings.dustOpacity = v;
+    dustMat.opacity = v;
+  }));
+
+  pg['Particles'].appendChild(makeDivider());
+  pg['Particles'].appendChild(makeLabel('Falling Petals'));
+  makeToggle(pg['Particles'], 'Show Falling Petals', Settings.showFallingPetals, v => {
+    Settings.showFallingPetals = v;
+    fallingPetals.forEach(m => { m.visible = v; });
+  });
+  pg['Particles'].appendChild(makeLabel('Petal Opacity'));
+  pg['Particles'].appendChild(makeSlider('fallOp', 0, 1, 0.02, Settings.fallingOpacity, v => {
+    Settings.fallingOpacity = v;
+    fallingPetals.forEach(m => { m.material.opacity = v; });
+  }));
+
+  pg['Particles'].appendChild(makeDivider());
+  pg['Particles'].appendChild(makeLabel('Star Size'));
+  pg['Particles'].appendChild(makeSlider('starSz', 0.02, 0.25, 0.005, Settings.starSize, v => {
+    Settings.starSize = v;
+    if (envRefs.starMat) envRefs.starMat.size = v;
+  }));
 
   // ── Assemble ──────────────────────────────────────────────────────
-  panel.appendChild(themeSection);
-  panel.appendChild(makeDivider());
-  panel.appendChild(camSection);
-  panel.appendChild(makeDivider());
-  panel.appendChild(windSection);
-  panel.appendChild(makeDivider());
-  panel.appendChild(rotBtn);
-  panel.appendChild(shotBtn);
   document.body.appendChild(panel);
 
-  // Fade out hint after 8 s
+  // Fade hint
   const hint = document.querySelector('#message .hint');
   if (hint) {
     setTimeout(() => {
@@ -1135,22 +1297,63 @@ function takeScreenshot() {
       hint.style.opacity    = '0';
     }, 8000);
   }
+
+  // ── Widget builders ──────────────────────────────────────────────
+  function makeSlider(id, min, max, step, value, onChange) {
+    const row = el('div', 'ui-slider-row');
+    const input = el('input');
+    input.type  = 'range';
+    input.id    = id;
+    input.min   = min;
+    input.max   = max;
+    input.step  = step;
+    input.value = value;
+    const valDisplay = el('span', 'ui-slider-val');
+    valDisplay.textContent = parseFloat(value).toFixed(step < 0.01 ? 4 : step < 0.1 ? 3 : 2);
+    input.oninput = () => {
+      const v = parseFloat(input.value);
+      valDisplay.textContent = v.toFixed(step < 0.01 ? 4 : step < 0.1 ? 3 : 2);
+      onChange(v);
+    };
+    row.appendChild(input);
+    row.appendChild(valDisplay);
+    return row;
+  }
+
+  function makeToggle(parent, label, initial, onChange) {
+    const row = el('div', 'ui-toggle-row');
+    const lbl = el('span', 'ui-toggle-label');
+    lbl.textContent = label;
+    const track = el('div', 'ui-switch-track' + (initial ? ' on' : ''));
+    const thumb = el('div', 'ui-switch-thumb');
+    track.appendChild(thumb);
+    let state = initial;
+    track.addEventListener('click', () => {
+      state = !state;
+      track.classList.toggle('on', state);
+      onChange(state);
+    });
+    row.appendChild(lbl);
+    row.appendChild(track);
+    parent.appendChild(row);
+    return row;
+  }
 })();
+
+// Mutable auto-rotate speed (patchable from UI)
+let autoRotateSpeed = CFG.AUTO_ROTATE_SPEED;
 
 // ═══════════════════════════════════════════════════════════════════
 //  THEME APPLICATION
 // ═══════════════════════════════════════════════════════════════════
 function applyTheme() {
   const theme = THEMES[activeTheme];
-
   updateLightTheme();
-
   petalMaterials.forEach((mat, i) => {
     const layerT = i / Math.max(petalMaterials.length - 1, 1);
     mat.color.setHSL(theme.petalHue, theme.petalSat, 0.20 + layerT * 0.14);
     mat.emissive.setHSL(theme.petalHue, 0.65, 0.04 + layerT * 0.03);
   });
-
   refreshDustColors();
   refreshFallingPetalColors();
   buildNebula(theme);
@@ -1171,51 +1374,47 @@ function animate() {
   const dt   = time - previousTime;
   previousTime = time;
 
-  // Rise-in on load
   if (!hasRisen) {
     flowerGroup.position.y += (0 - flowerGroup.position.y) * 0.025;
     if (Math.abs(flowerGroup.position.y) < 0.002) { flowerGroup.position.y = 0; hasRisen = true; }
   }
 
-  // Ambient sway
   const sw = 1.0 + Wind.strength * 1.6;
   flowerGroup.rotation.z = (Math.sin(time*0.37)*0.015 + Math.sin(time*0.71)*0.006) * sw;
   flowerGroup.rotation.x =  Math.sin(time*0.26)*0.007 * sw;
   flowerGroup.scale.setScalar(1 + Math.sin(time*1.20)*0.003 + Math.sin(time*2.40)*0.001);
 
   // Pulsing glow
-  glowGroup.children.forEach((mesh, i) => {
-    const pulse = 1 + Math.sin(time * (0.5 + i*0.3) + i) * 0.04;
-    mesh.scale.setScalar(pulse);
-  });
-
-  // Spotlight gentle flicker — subtle intensity oscillation
-  if (lights.spots) {
-    lights.spots.forEach((spot, i) => {
-      spot.intensity = 2.8 + Math.sin(time * 0.6 + i * 2.1) * 0.25
-                           + Wind.strength * 0.15;
+  if (Settings.showGlow) {
+    glowGroup.children.forEach((mesh, i) => {
+      const pulse = 1 + Math.sin(time * (0.5 + i*0.3) + i) * 0.04;
+      mesh.scale.setScalar(pulse);
     });
   }
 
-  // Bounce light pulse
+  // Spotlight flicker
+  if (lights.spots) {
+    lights.spots.forEach((spot, i) => {
+      spot.intensity = Settings.spotIntensity + Math.sin(time * 0.6 + i * 2.1) * 0.25
+                     + Wind.strength * 0.3;
+    });
+  }
+
   lights.bounce.intensity = 1.2 + Math.sin(time * 1.8) * 0.3;
 
-  // Starfield twinkle
   const twinkleMat = envGroup.userData.twinkleMat;
-  if (twinkleMat) twinkleMat.opacity = 0.55 + Math.sin(time * 1.1) * 0.12;
+  if (twinkleMat && Settings.showStars) twinkleMat.opacity = 0.55 + Math.sin(time * 1.1) * 0.12;
 
-  // Nebula slow drift
   nebulaGroup.rotation.y = time * 0.018;
 
   // Camera orbit
-  const now       = performance.now() / 1000;
-  const idle      = now - orbit.lastActivity;
-  const restoring = !orbit.isDragging && idle > CFG.RESTORE_DELAY;
+  const now     = performance.now() / 1000;
+  const idle    = now - orbit.lastActivity;
+  const restoring = !orbit.isDragging && idle > CFG.RESTORE_DELAY && Settings.restoreCamera;
   const restoreK  = restoring ? clamp((idle - CFG.RESTORE_DELAY) / 2.0, 0, 1) : 0;
-  const autoRotate = typeof window._roseAutoRotate === 'function' ? window._roseAutoRotate() : true;
 
   if (!orbit.isDragging) {
-    if (autoRotate) orbit.targetTheta += CFG.AUTO_ROTATE_SPEED;
+    if (Settings.autoRotate) orbit.targetTheta += autoRotateSpeed;
     if (restoreK > 0) {
       orbit.targetPhi    += (CFG.PHI    - orbit.targetPhi)    * restoreK * 0.04;
       orbit.targetRadius += (CFG.RADIUS - orbit.targetRadius) * restoreK * 0.04;
@@ -1235,7 +1434,6 @@ function animate() {
 
   Wind.update(dt);
 
-  // Petal breeze
   petalBreezeData.forEach(pd => {
     const gust = Wind.strength * (0.55 + 0.45 * Math.cos(pd.angle - Wind.direction));
     const wX = Math.sin(time*pd.freqX*2.1+pd.phaseX)*0.50
@@ -1247,40 +1445,41 @@ function animate() {
     pd.mesh.rotation.z = pd.baseRZ + wZ * pd.breezeAmp * gust * 0.6;
   });
 
-  // Leaf breeze
   leafBreezeData.forEach(lb => {
     lb.mesh.rotation.x = lb.baseRX + Math.sin(time*0.88+lb.phaseX)*0.026*Wind.strength;
     lb.mesh.rotation.z = lb.baseRZ + Math.sin(time*0.68+lb.phaseZ)*0.042*Wind.strength;
   });
 
-  // Dust orbit
-  dustParticles.forEach((d, i) => {
-    d.angle += d.speed;
-    d.y     += d.drift;
-    if (d.y > 2.9) d.y = -2.2;
-    dustPositions[i*3]   = Math.cos(d.angle) * d.radius;
-    dustPositions[i*3+1] = d.y;
-    dustPositions[i*3+2] = Math.sin(d.angle) * d.radius;
-  });
-  dustPositionAttr.needsUpdate = true;
+  if (Settings.showDust) {
+    dustParticles.forEach((d, i) => {
+      d.angle += d.speed;
+      d.y     += d.drift;
+      if (d.y > 2.9) d.y = -2.2;
+      dustPositions[i*3]   = Math.cos(d.angle) * d.radius;
+      dustPositions[i*3+1] = d.y;
+      dustPositions[i*3+2] = Math.sin(d.angle) * d.radius;
+    });
+    dustPositionAttr.needsUpdate = true;
+  }
 
-  // Falling petals
-  fallingPetals.forEach(mesh => {
-    const d = mesh.userData;
-    d.y    += d.speedY;
-    d.x    += d.driftX + Math.sin(time*0.38+d.phase)*0.0018;
-    d.z    += d.driftZ;
-    d.rotX += d.rotSpX;
-    d.rotZ += d.rotSpZ;
-    if (d.y < -4.5) {
-      d.y = randBetween(5, 9);
-      d.x = randBetween(-5.5, 5.5);
-      d.z = randBetween(-5.5, 5.5);
-    }
-    mesh.position.set(d.x, d.y, d.z);
-    mesh.rotation.set(d.rotX, 0, d.rotZ);
-    mesh.material.opacity = clamp((d.y + 4.5) * 0.20, 0, 0.70);
-  });
+  if (Settings.showFallingPetals) {
+    fallingPetals.forEach(mesh => {
+      const d = mesh.userData;
+      d.y    += d.speedY;
+      d.x    += d.driftX + Math.sin(time*0.38+d.phase)*0.0018;
+      d.z    += d.driftZ;
+      d.rotX += d.rotSpX;
+      d.rotZ += d.rotSpZ;
+      if (d.y < -4.5) {
+        d.y = randBetween(5, 9);
+        d.x = randBetween(-5.5, 5.5);
+        d.z = randBetween(-5.5, 5.5);
+      }
+      mesh.position.set(d.x, d.y, d.z);
+      mesh.rotation.set(d.rotX, 0, d.rotZ);
+      mesh.material.opacity = clamp((d.y + 4.5) * 0.20, 0, Settings.fallingOpacity);
+    });
+  }
 
   renderer.render(scene, camera);
 }
@@ -1292,5 +1491,4 @@ setTimeout(() => {
   if (hint) {
     hint.style.animation = 'fadeOut 2s forwards';
   }
-
 }, 14000);
